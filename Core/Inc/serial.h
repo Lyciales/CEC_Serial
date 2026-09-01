@@ -15,6 +15,8 @@
 #define MAX_PAYLOAD_SIZE 64
 #define RX_BUFFER_SIZE 128
 
+#define SLAVE_ID 0x01
+
 // Trạng thái máy trạng thái nhận
 typedef enum {
     STATE_WAIT_HEADER = 0,
