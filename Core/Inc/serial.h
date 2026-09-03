@@ -15,7 +15,15 @@
 #define MAX_PAYLOAD_SIZE 64
 #define RX_BUFFER_SIZE 128
 
-#define SLAVE_ID 0x01
+// Định nghĩa mã lệnh (Command Code)
+#define CMD_READ_STATUS     0x03    // Master yêu cầu đọc trạng thái
+#define CMD_WRITE_CONTROL   0x10    // Master gửi lệnh điều khiển
+
+#define RESP_READ_STATUS    0x83    // MCU phản hồi dữ liệu đọc (0x03 | 0x83)
+#define RESP_WRITE_CONTROL  0x90    // MCU phản hồi xác nhận lệnh ghi (0x10 | 0x90)
+
+// Định nghĩa ID cho MCU
+#define SLAVE_ID 0x02
 
 // Trạng thái máy trạng thái nhận
 typedef enum {

@@ -107,128 +107,203 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+    // /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+    // /* USER CODE BEGIN 3 */
+    // // Thêm các biến static để lưu trữ trạng thái và dữ liệu điều khiển giữa các chu kỳ while(1)
+    // static uint8_t is_data_zero = 1;
+    // static uint8_t target_state = 0;
+    // static float target_current = 0.0f; 
 
-    // Code này đã test nhận labview thành công
 	  // switch (app_state) {
 		// case APP_STATE_IDLE:
 		//   if (frame_received_flag == 1)
 		//   {
-		// 	// Kiểm tra lệnh hợp lệ
-		// 	if (valid_frame_buffer.address == 0x01 && valid_frame_buffer.command == 0x10)
+		// 	// Kiểm tra nghiêm ngặt: Địa chỉ có đúng là SLAVE_ID không? Command = 0x10, Length = 5
+		// 	if (valid_frame_buffer.address == SLAVE_ID && 
+    //             valid_frame_buffer.command == 0x10 && 
+    //             valid_frame_buffer.length == 5)
 		// 	{
-		// 	  delay_start_time = HAL_GetTick(); // Bắt đầu đếm giờ
-		// 	  app_state = APP_STATE_WAIT_TX;    // Chuyển sang trạng thái chờ
+		// 	  // Kiểm tra xem 5 byte data có bằng 0x00 hết không
+		// 	  is_data_zero = 1;
+		// 	  for (int i = 0; i < 5; i++) {
+		// 		if (valid_frame_buffer.payload[i] != 0x00) {
+		// 		  is_data_zero = 0;
+		// 		  break;
+		// 		}
+		// 	  }
+
+		// 	  // Chỉ thực thi mã phân tích điều khiển NẾU địa chỉ đã khớp ở lệnh IF phía trên
+		// 	  // và có byte khác 0x00
+		// 	  if (is_data_zero == 0) {
+		// 		// 1. Tách 1 byte đầu tiên thành trạng thái On/Off
+		// 		target_state = valid_frame_buffer.payload[0];
+				
+		// 		// 2. Bỏ qua 2 byte tiếp theo (payload[1] và payload[2]) do không điều khiển nhiệt độ
+				
+		// 		// 3. Tách 2 byte cuối thành biến float (chia 100 để tương ứng định dạng %.2f)
+		// 		uint16_t current_raw = (valid_frame_buffer.payload[3] << 8) | valid_frame_buffer.payload[4];
+		// 		target_current = (float)current_raw / 100.0f; 
+		// 	  }
+
+		// 	  delay_start_time = HAL_GetTick(); // Bắt đầu đếm giờ 5ms
+		// 	  app_state = APP_STATE_WAIT_TX;    // Chuyển sang trạng thái chờ gửi
 		// 	}
 		// 	else
 		// 	{
-		// 	  frame_received_flag = 0; // Xóa cờ nếu lệnh không được hỗ trợ
+		// 	  frame_received_flag = 0; // Xóa cờ từ chối xử lý nếu không đúng ID hoặc sai chuẩn
 		// 	}
 		//   }
-		//   break; 
+		//   break;
 
 		// case APP_STATE_WAIT_TX:
 		//   // Đợi 5ms không chặn CPU
 		//   if ((HAL_GetTick() - delay_start_time) >= 5)
 		//   {
-		// 	uint8_t resp[] = {0x4F, 0x4B};
-		// 	RS485_Send_Frame_DMA(&huart1, 0x01, 0x90, resp, 2);
+		// 	uint8_t resp[5];
 
-		// 	frame_received_flag = 0; // Xử lý xong mới cho phép nhận lệnh tiếp theo
+		// 	if (is_data_zero == 1) {
+		// 	  // --- TRƯỜNG HỢP 1: Yêu cầu cập nhật dữ liệu (Data = 0) ---
+		// 	  uint8_t  state   = 1;     // 1 byte On/Off state 
+		// 	  uint16_t temp    = 2850;  // 2 byte Nhiệt độ
+		// 	  uint16_t current = 1205;  // 2 byte Dòng điện
+			  
+		// 	  resp[0] = state;                      
+		// 	  resp[1] = (temp >> 8) & 0xFF;         
+		// 	  resp[2] = temp & 0xFF;                
+		// 	  resp[3] = (current >> 8) & 0xFF;      
+		// 	  resp[4] = current & 0xFF;             
+		// 	} 
+		// 	else {
+		// 	  // --- TRƯỜNG HỢP 2: Yêu cầu cài đặt/điều khiển (Có byte != 0) ---
+		// 	  // Gán byte đầu tiên phản hồi thành Slave ID của thiết bị 
+		// 	  resp[0] = valid_frame_buffer.payload[0];
+			  
+		// 	  // Lặp lại (echo) 4 byte còn lại từ bản tin vừa nhận
+		// 	  resp[1] = valid_frame_buffer.payload[1];
+		// 	  resp[2] = valid_frame_buffer.payload[2];
+		// 	  resp[3] = valid_frame_buffer.payload[3];
+		// 	  resp[4] = valid_frame_buffer.payload[4];
+		// 	}
+
+		// 	// Gửi bản tin qua hàm DMA của serial.c với địa chỉ là SLAVE_ID
+		// 	RS485_Send_Frame_DMA(&huart1, SLAVE_ID, 0x90, resp, 5);
+
+		// 	frame_received_flag = 0; // Đặt lại cờ, sẵn sàng cho bản tin tiếp theo
 		// 	app_state = APP_STATE_IDLE;
 		//   }
 		//   break;
 	  // }
 
-/* USER CODE BEGIN 3 */
-    // Thêm các biến static để lưu trữ trạng thái và dữ liệu điều khiển giữa các chu kỳ while(1)
+    // THUẬT TOÁN ĐANG CHẠY THỰC TẾ
     static uint8_t is_data_zero = 1;
     static uint8_t target_state = 0;
     static float target_current = 0.0f; 
 
-	  switch (app_state) {
-		case APP_STATE_IDLE:
-		  if (frame_received_flag == 1)
-		  {
-			// Kiểm tra nghiêm ngặt: Địa chỉ có đúng là SLAVE_ID không? Command = 0x10, Length = 5
-			if (valid_frame_buffer.address == SLAVE_ID && 
-                valid_frame_buffer.command == 0x10 && 
-                valid_frame_buffer.length == 5)
-			{
-			  // Kiểm tra xem 5 byte data có bằng 0x00 hết không
-			  is_data_zero = 1;
-			  for (int i = 0; i < 5; i++) {
-				if (valid_frame_buffer.payload[i] != 0x00) {
-				  is_data_zero = 0;
-				  break;
-				}
-			  }
+    switch (app_state) {
+      case APP_STATE_IDLE:
+        if (frame_received_flag == 1)
+        {
+          // Bước 1: Kiểm tra đúng địa chỉ thiết bị (SLAVE_ID)
+          if (valid_frame_buffer.address == SLAVE_ID) 
+          {
+            // --- CASE 1: Lệnh GHI điều khiển (0x10) - Bắt buộc Length = 5 ---
+            if (valid_frame_buffer.command == CMD_WRITE_CONTROL && valid_frame_buffer.length == 5)
+            {
+              // Kiểm tra xem 5 byte data có bằng 0x00 hết không
+              is_data_zero = 1;
+              for (int i = 0; i < 5; i++) {
+                if (valid_frame_buffer.payload[i] != 0x00) {
+                  is_data_zero = 0;
+                  break;
+                }
+              }
 
-			  // Chỉ thực thi mã phân tích điều khiển NẾU địa chỉ đã khớp ở lệnh IF phía trên
-			  // và có byte khác 0x00
-			  if (is_data_zero == 0) {
-				// 1. Tách 1 byte đầu tiên thành trạng thái On/Off
-				target_state = valid_frame_buffer.payload[0];
-				
-				// 2. Bỏ qua 2 byte tiếp theo (payload[1] và payload[2]) do không điều khiển nhiệt độ
-				
-				// 3. Tách 2 byte cuối thành biến float (chia 100 để tương ứng định dạng %.2f)
-				uint16_t current_raw = (valid_frame_buffer.payload[3] << 8) | valid_frame_buffer.payload[4];
-				target_current = (float)current_raw / 100.0f; 
-			  }
+              // Chỉ phân tích NẾU có byte khác 0x00
+              if (is_data_zero == 0) {
+                target_state = valid_frame_buffer.payload[0];
+                uint16_t current_raw = (valid_frame_buffer.payload[3] << 8) | valid_frame_buffer.payload[4];
+                target_current = (float)current_raw / 100.0f; 
+              }
 
-			  delay_start_time = HAL_GetTick(); // Bắt đầu đếm giờ 5ms
-			  app_state = APP_STATE_WAIT_TX;    // Chuyển sang trạng thái chờ gửi
-			}
-			else
-			{
-			  frame_received_flag = 0; // Xóa cờ từ chối xử lý nếu không đúng ID hoặc sai chuẩn
-			}
-		  }
-		  break;
+              delay_start_time = HAL_GetTick(); 
+              app_state = APP_STATE_WAIT_TX;    
+            }
+            // --- CASE 2: Lệnh ĐỌC trạng thái (0x03) - Bắt buộc Length = 0 ---
+            else if (valid_frame_buffer.command == CMD_READ_STATUS && valid_frame_buffer.length == 0)
+            {
+              // Lệnh đọc không có payload, chỉ cần chuyển thẳng sang trạng thái phản hồi
+              delay_start_time = HAL_GetTick(); 
+              app_state = APP_STATE_WAIT_TX;
+            }
+            else
+            {
+              // Khung tin chứa command lạ hoặc sai độ dài
+              frame_received_flag = 0; 
+            }
+          }
+        else
+        {
+          // Khung tin gửi cho địa chỉ khác
+          frame_received_flag = 0; 
+        }
+      }
+      break;
 
-		case APP_STATE_WAIT_TX:
-		  // Đợi 5ms không chặn CPU
-		  if ((HAL_GetTick() - delay_start_time) >= 5)
-		  {
-			uint8_t resp[5];
+    case APP_STATE_WAIT_TX:
+      // Đợi 5ms không chặn CPU
+      if ((HAL_GetTick() - delay_start_time) >= 5)
+      {
+        uint8_t resp[5];
 
-			if (is_data_zero == 1) {
-			  // --- TRƯỜNG HỢP 1: Yêu cầu cập nhật dữ liệu (Data = 0) ---
-			  uint8_t  state   = 1;     // 1 byte On/Off state 
-			  uint16_t temp    = 2850;  // 2 byte Nhiệt độ
-			  uint16_t current = 1205;  // 2 byte Dòng điện
-			  
-			  resp[0] = state;                      
-			  resp[1] = (temp >> 8) & 0xFF;         
-			  resp[2] = temp & 0xFF;                
-			  resp[3] = (current >> 8) & 0xFF;      
-			  resp[4] = current & 0xFF;             
-			} 
-			else {
-			  // --- TRƯỜNG HỢP 2: Yêu cầu cài đặt/điều khiển (Có byte != 0) ---
-			  // Gán byte đầu tiên phản hồi thành Slave ID của thiết bị 
-			  resp[0] = valid_frame_buffer.payload[0];
-			  
-			  // Lặp lại (echo) 4 byte còn lại từ bản tin vừa nhận
-			  resp[1] = valid_frame_buffer.payload[1];
-			  resp[2] = valid_frame_buffer.payload[2];
-			  resp[3] = valid_frame_buffer.payload[3];
-			  resp[4] = valid_frame_buffer.payload[4];
-			}
+        // --- PHẢN HỒI CHO LỆNH ĐỌC (Mã gửi về: 0x83) ---
+        if (valid_frame_buffer.command == CMD_READ_STATUS)
+        {
+          uint8_t  state   = 1;     // 1 byte On/Off state 
+          uint16_t temp    = 2850;  // 2 byte Nhiệt độ
+          uint16_t current = 1205;  // 2 byte Dòng điện
+          
+          resp[0] = state;                      
+          resp[1] = (temp >> 8) & 0xFF;         
+          resp[2] = temp & 0xFF;                
+          resp[3] = (current >> 8) & 0xFF;      
+          resp[4] = current & 0xFF;  
 
-			// Gửi bản tin qua hàm DMA của serial.c với địa chỉ là SLAVE_ID
-			RS485_Send_Frame_DMA(&huart1, SLAVE_ID, 0x90, resp, 5);
-
-			frame_received_flag = 0; // Đặt lại cờ, sẵn sàng cho bản tin tiếp theo
-			app_state = APP_STATE_IDLE;
-		  }
-		  break;
-	  }
+          // Gửi bản tin với mã phản hồi RESP_READ_STATUS (0x83)
+          RS485_Send_Frame_DMA(&huart1, SLAVE_ID, RESP_READ_STATUS, resp, 5);
+        }
+        // --- PHẢN HỒI CHO LỆNH GHI (Mã gửi về: 0x90) ---
+        else if (valid_frame_buffer.command == CMD_WRITE_CONTROL)
+        {
+          if (is_data_zero == 1) {
+            // Trường hợp cập nhật dữ liệu (Data = 0)
+            uint8_t  state   = 1;     
+            uint16_t temp    = 2850;  
+            uint16_t current = 1205;  
+            
+            resp[0] = state;                      
+            resp[1] = (temp >> 8) & 0xFF;         
+            resp[2] = temp & 0xFF;                
+            resp[3] = (current >> 8) & 0xFF;      
+            resp[4] = current & 0xFF;             
+          } 
+          else {
+            // Trường hợp echo lại thông số cài đặt
+            resp[0] = valid_frame_buffer.payload[0];
+            resp[1] = valid_frame_buffer.payload[1];
+            resp[2] = valid_frame_buffer.payload[2];
+            resp[3] = valid_frame_buffer.payload[3];
+            resp[4] = valid_frame_buffer.payload[4];
+          }
+          // Gửi bản tin với mã phản hồi RESP_WRITE_CONTROL (0x90)
+          RS485_Send_Frame_DMA(&huart1, SLAVE_ID, RESP_WRITE_CONTROL, resp, 5);
+        }
+        frame_received_flag = 0; // Đặt lại cờ, sẵn sàng cho bản tin tiếp theo
+        app_state = APP_STATE_IDLE;
+      }
+      break;
+    }
   }
-  /* USER CODE END 3 */
 }
 
 /**
